@@ -1,42 +1,42 @@
-# Stage 1: Dependencies
+# Étape 1 : Dépendances
 FROM node:20-alpine AS deps
 WORKDIR /app
-# Installation de libc6-compat nécessaire pour certaines libs sur Alpine
-RUN apk add --no-cache libc6-compat
+# Copie uniquement les fichiers de dépendances pour optimiser le cache
 COPY package.json package-lock.json ./
+# Installation propre des dépendances
 RUN npm ci
 
-# Stage 2: Builder
+# Étape 2 : Construction (Build)
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-
-# Désactive la télémétrie Next.js pendant le build
-ENV NEXT_TELEMETRY_DISABLED=1
-
+# Construit le projet Next.js
 RUN npm run build
 
-# Stage 3: Runner
+# Étape 3 : Production (Runner)
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV production
 
+# Création d'un utilisateur non-root pour la sécurité
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copie des fichiers nécessaires seulement
+# Copie du dossier public (images, favicon, etc.)
 COPY --from=builder /app/public ./public
+
+# Copie des fichiers de build optimisés (grâce au mode standalone)
+# Note : Le dossier .next/standalone contient tout le nécessaire pour tourner sans node_modules complet
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
 EXPOSE 3000
 
-ENV PORT=3000
-# Le hostname doit être 0.0.0.0 pour Docker
-ENV HOSTNAME="0.0.0.0"
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
 
 CMD ["node", "server.js"]
