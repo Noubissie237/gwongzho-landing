@@ -23,5 +23,4 @@ services:
 
 networks:
   gwongzho-landing-page-prod:
-    external: true
     name: backend_gwongzho-landing-page-prod
