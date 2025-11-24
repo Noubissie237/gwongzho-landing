@@ -1,0 +1,27 @@
+services:
+  gwongzho-landing-page:
+    build: .
+    container_name: gwongzho-landing-page
+    environment:
+      NODE_ENV: production
+    ports:
+      - "2372:3000"
+    networks:
+      - gwongzho-landing-page-prod
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  gwongzho-landing-page-prod:
+    external: true
+    name: backend_gwongzho-landing-page-prod
